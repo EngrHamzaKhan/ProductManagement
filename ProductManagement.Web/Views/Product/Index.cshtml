@@ -1,0 +1,178 @@
+﻿@{
+    ViewData["Title"] = "Products";
+}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+<div class="container mt-4">
+    <h4>Product Management</h4>
+
+    <button class="btn btn-success mb-2" onclick="showAddModal()">Add Product</button>
+
+    <table id="productTable" class="display table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+
+<div class="modal" id="productModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Product</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeModal()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="productId">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="productName" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Price</label>
+                    <input type="number" id="productPrice" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="productQuantity" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveProduct()">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            loadProducts();
+        });
+
+        let table; // DataTable variable
+
+        function loadProducts() {
+            if ($.fn.DataTable.isDataTable("#productTable")) {
+                $("#productTable").DataTable().destroy();
+            }
+
+            $.ajax({
+                url: '/Product/GetProducts',
+                type: 'GET',
+                success: function (data) {
+                    let rows = '';
+                    data.forEach(product => {
+                        rows += `<tr>
+                                <td>${product.id}</td>
+                                <td>${product.name}</td>
+                                <td>${product.price}</td>
+                                <td>${product.quantity}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm" onclick="editProduct(${product.id})">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>
+                                </td>
+                            </tr>`;
+                    });
+
+                    $('#productTable tbody').html(rows);
+
+                    // Initialize DataTable with features
+                    table = $('#productTable').DataTable({
+                        responsive: true,
+                        paging: true,
+                        searching: true,
+                        ordering: true,
+                        lengthMenu: [5, 10, 25, 50],
+                        pageLength: 5
+                    });
+                }
+            });
+        }
+
+        function showAddModal() {
+            $('#productId').val('');
+            $('#productName').val('');
+            $('#productPrice').val('');
+            $('#productQuantity').val('');
+            $('#productModal').modal('show');
+        }
+
+        function saveProduct() {
+            const product = {
+                id: $('#productId').val() ? $('#productId').val() : undefined,
+                name: $('#productName').val(),
+                price: $('#productPrice').val(),
+                quantity: $('#productQuantity').val()
+            };
+
+            if (!product.name || product.price <= 0 || product.quantity < 0) {
+                alert('Please enter valid data!');
+                return;
+            }
+
+            const url = product.id ? '/Product/Update' : '/Product/Create';
+            const type = product.id ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                type: type,
+                contentType: 'application/json',
+                data: JSON.stringify(product),
+                success: function (response) {
+                    alert(response.message);
+                    $('#productModal').modal('hide');
+                    loadProducts(); // Refresh the table
+                }
+            });
+        }
+
+        function editProduct(id) {
+            $.ajax({
+                url: `/Product/GetProductById?id=${id}`,
+                type: 'GET',
+                success: function (product) {
+                    $('#productId').val(product.id);
+                    $('#productName').val(product.name);
+                    $('#productPrice').val(product.price);
+                    $('#productQuantity').val(product.quantity);
+                    $('#productModal').modal('show');
+                }
+            });
+        }
+
+        function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+
+            $.ajax({
+                url: `/Product/Delete?id=${id}`,
+                type: 'DELETE',
+                success: function (response) {
+                    alert(response.message);
+                    loadProducts();
+                }
+            });
+        }
+
+        function closeModal()
+        {
+            $('#productModal').modal('hide');
+        }
+    </script>
+}
+

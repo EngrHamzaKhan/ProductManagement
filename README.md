@@ -22,3 +22,5 @@ Done:
                                  // for proper way we use SSO later.
 9. used same controller.
 
+
+==============================Added RabbitMQ in MVC Not Recommended just for checking purpose ==============================================

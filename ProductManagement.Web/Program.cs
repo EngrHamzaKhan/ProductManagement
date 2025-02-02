@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
 using ProductManagement.Web.Data;
 using ProductManagement.Web.Interfaces;
+using ProductManagement.Web.Services.EmailService;
+using ProductManagement.Web.Services.RabbitMQ;
 using ProductManagement.Web.UnitOfWork;
 using System.Configuration;
 using System.Data;
@@ -65,7 +67,10 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllersWithViews();
-
+// Register services
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<RabbitMQProducer>();
+builder.Services.AddHostedService<RabbitMQConsumer>();
 
 var app = builder.Build();
 

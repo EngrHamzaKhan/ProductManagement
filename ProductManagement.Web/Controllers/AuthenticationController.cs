@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ProductManagement.Web.Models;
+using ProductManagement.Web.Services.RabbitMQ;
 
 namespace ProductManagement.Web.Controllers
 {
@@ -15,13 +16,15 @@ namespace ProductManagement.Web.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly RabbitMQProducer _rabbitMQProducer;
 
         private static Dictionary<string, string> _refreshTokens = new(); 
 
-        public AuthenticationController(UserManager<IdentityUser> userManager, IConfiguration configuration)
+        public AuthenticationController(UserManager<IdentityUser> userManager, IConfiguration configuration, RabbitMQProducer rabbitMQProducer)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _rabbitMQProducer = rabbitMQProducer;
         }
 
         [HttpPost("authenticate")]
@@ -39,6 +42,8 @@ namespace ProductManagement.Web.Controllers
             // IMPORTANT: Store Refresh Token in DB Later.
             _refreshTokens[user.Id] = refreshToken;
 
+            //send notification
+            _rabbitMQProducer.PublishMessage(user.Email);
             return Ok(new { accessToken, refreshToken });
         }
 
@@ -68,6 +73,7 @@ namespace ProductManagement.Web.Controllers
             {
         new Claim(ClaimTypes.Name, user.UserName),
         new Claim("id", user.Id),
+        new Claim("Email", user.Email),
     };
 
             // Ensure the token key is 256 bits (32 bytes)
